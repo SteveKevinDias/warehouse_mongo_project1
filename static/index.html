@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Intel | Full Visibility</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --glass: rgba(255, 255, 255, 0.08);
+            --bg: #050505;
+            --danger: #ff4d4d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), 
+                        url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000');
+            background-size: cover;
+            background-attachment: fixed;
+            color: #e0e0e0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard { width: 100%; max-width: 1400px; }
+
+        header { text-align: left; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        header h1 { font-size: 1.6rem; font-weight: 300; letter-spacing: 5px; color: #fff; }
+        header span { color: var(--primary); font-weight: 800; }
+
+        .grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        h2 { font-size: 0.9rem; margin-bottom: 15px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
+
+        .form-group { margin-bottom: 12px; }
+        label { font-size: 0.65rem; color: rgba(255,255,255,0.5); display: block; margin-bottom: 4px; text-transform: uppercase; }
+
+        input {
+            width: 100%; padding: 10px; background: rgba(0,0,0,0.3); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; 
+            color: white; outline: none; transition: 0.3s; font-size: 0.85rem;
+        }
+
+        input:focus { border-color: var(--primary); background: rgba(0,242,255,0.05); }
+
+        .btn {
+            padding: 10px 15px; border: none; border-radius: 6px; 
+            font-weight: 600; cursor: pointer; transition: 0.2s;
+            text-transform: uppercase; font-size: 0.7rem;
+        }
+
+        .btn-add { width: 100%; background: var(--primary); color: #000; margin-top: 5px; }
+        .btn-patch { background: rgba(0, 242, 255, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+        .btn-del { background: rgba(255, 77, 77, 0.1); color: var(--danger); border: 1px solid var(--danger); margin-left: 4px;}
+        
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: rgba(255,255,255,0.4); font-size: 0.65rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+
+        .date-badge { font-family: monospace; padding: 2px 5px; border-radius: 4px; background: rgba(255,255,255,0.05); }
+        .expired { color: var(--danger); border: 1px solid var(--danger); }
+
+        /* Modal Overlay */
+        #patchOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+        }
+
+        .modal-content { width: 450px; position: relative; border: 1px solid var(--primary); }
+        .close-modal { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; color: #fff; opacity: 0.5; }
+
+        @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <header>
+        <h1>CORE<span>WAREHOUSE</span> v1.2</h1>
+    </header>
+
+    <div class="grid">
+        <aside class="glass-panel">
+            <h2>Add New Asset</h2>
+            <form id="addForm">
+                <div class="form-group"><label>Product ID</label><input type="number" id="a_id" required></div>
+                <div class="form-group"><label>Name</label><input type="text" id="a_name" required></div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group"><label>Qty</label><input type="number" id="a_qty" required></div>
+                    <div class="form-group"><label>Price</label><input type="number" step="0.01" id="a_price" required></div>
+                </div>
+                <div class="form-group"><label>Mfg Date</label><input type="date" id="a_mfg" required></div>
+                <div class="form-group"><label>Exp Date</label><input type="date" id="a_exp" required></div>
+                <button type="submit" class="btn btn-add">Register Item</button>
+            </form>
+        </aside>
+
+        <main class="glass-panel" style="overflow-x: auto;">
+            <h2>Live Inventory & Lifecyle Data</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product Name</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Manufactured</th>
+                        <th>Expiry Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryBody"></tbody>
+            </table>
+        </main>
+    </div>
+</div>
+
+<div id="patchOverlay">
+    <div class="glass-panel modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2 id="patchTitle">Patch Asset</h2>
+        <form id="patchForm">
+            <input type="hidden" id="p_id">
+            <div class="form-group"><label>Product Name</label><input type="text" id="p_name"></div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex:1;"><label>Stock</label><input type="number" id="p_qty"></div>
+                <div class="form-group" style="flex:1;"><label>Price</label><input type="number" step="0.01" id="p_price"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex:1;"><label>MFG Date</label><input type="date" id="p_mfg"></div>
+                <div class="form-group" style="flex:1;"><label>EXP Date</label><input type="date" id="p_exp"></div>
+            </div>
+            <button type="submit" class="btn btn-add" style="background: var(--secondary); color: white;">Apply Patch</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API = "http://127.0.0.1:8000/warehouse";
+    const today = new Date().toISOString().split('T')[0];
+
+    window.onload = loadData;
+
+    async function loadData() {
+        try {
+            const res = await fetch(`${API}/getdata`);
+            const data = await res.json();
+            document.getElementById('inventoryBody').innerHTML = data.map(item => {
+                const isExpired = item.date_of_expiry < today;
+                return `
+                <tr>
+                    <td>#${item.product_id}</td>
+                    <td><strong>${item.product_name}</strong></td>
+                    <td>${item.quantity} Units</td>
+                    <td>$${item.price}</td>
+                    <td><span class="date-badge">${item.date_of_manufacture}</span></td>
+                    <td><span class="date-badge ${isExpired ? 'expired' : ''}">${item.date_of_expiry}</span></td>
+                    <td>
+                        <button class="btn btn-patch" onclick='openPatch(${JSON.stringify(item)})'>Edit</button>
+                        <button class="btn btn-del" onclick="deleteItem(${item.product_id})">Del</button>
+                    </td>
+                </tr>
+            `}).join('');
+        } catch (e) { console.error("Sync Error", e); }
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            product_id: parseInt(document.getElementById('a_id').value),
+            product_name: document.getElementById('a_name').value,
+            quantity: parseInt(document.getElementById('a_qty').value),
+            price: parseFloat(document.getElementById('a_price').value),
+            date_of_manufacture: document.getElementById('a_mfg').value,
+            date_of_expiry: document.getElementById('a_exp').value
+        };
+        await fetch(`${API}/add_item`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        document.getElementById('addForm').reset();
+        loadData();
+    });
+
+    function openPatch(item) {
+        document.getElementById('p_id').value = item.product_id;
+        document.getElementById('p_name').value = item.product_name;
+        document.getElementById('p_qty').value = item.quantity;
+        document.getElementById('p_price').value = item.price;
+        document.getElementById('p_mfg').value = item.date_of_manufacture;
+        document.getElementById('p_exp').value = item.date_of_expiry;
+        document.getElementById('patchOverlay').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('patchOverlay').style.display = 'none'; }
+
+    document.getElementById('patchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('p_id').value;
+        const payload = {
+            product_id: parseInt(id),
+            product_name: document.getElementById('p_name').value || null,
+            quantity: document.getElementById('p_qty').value ? parseInt(document.getElementById('p_qty').value) : null,
+            price: document.getElementById('p_price').value ? parseFloat(document.getElementById('p_price').value) : null,
+            date_of_manufacture: document.getElementById('p_mfg').value || null,
+            date_of_expiry: document.getElementById('p_exp').value || null
+        };
+        await fetch(`${API}/patch/${id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        closeModal();
+        loadData();
+    });
+
+    async function deleteItem(id) {
+        if(confirm("Permanently delete?")) {
+            await fetch(`${API}/delete/${id}`, { method: 'DELETE' });
+            loadData();
+        }
+    }
+</script>
+
+</body>
+</html>
